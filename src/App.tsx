@@ -18,54 +18,17 @@ function App() {
     const draw = SVG().addTo(drawAreaRef.current).size(width, height);
 
     const renderOffsetX = width / 2;
-    const renderOffsetY = height / 2 - 100;
+    const renderOffsetY = height / 2;
 
-    const renderPointsCount = 100;
-    const a = 1.00005507808;
-    const b = 0.55342925736;
-    const c = 0.99873327689;
-    const radius = 150;
-    const pointsArc1 = generateAllPoints(
-      0,
-      0,
-      radius * b,
-      radius - radius * c,
-      radius * c,
-      radius - radius * b,
-      radius * a,
-      radius * a,
-      renderPointsCount,
-    );
-    const pointsArc2 = pointsArc1.map((p) => ({
-      x: -p.y + 150,
-      y: p.x + 150,
+    const points = evenlySpacedEllipsePoints(
+      100,
+      100,
+      sides,
+      3 * (Math.PI / 2),
+    ).map((p) => ({
+      x: p[0],
+      y: p[1],
     }));
-    const pointsArc3 = pointsArc1.map((p) => ({
-      x: -p.x,
-      y: -p.y + 300,
-    }));
-    const pointsArc4 = pointsArc1.map((p) => ({
-      x: p.y - 150,
-      y: -p.x + 150,
-    }));
-
-    const allPoints = [
-      ...pointsArc1,
-      ...pointsArc2,
-      ...pointsArc3,
-      ...pointsArc4,
-    ];
-    const points = findEvenlySpacedPoints(allPoints, sides);
-    //
-    // const points = evenlySpacedEllipsePoints(
-    //   100,
-    //   100,
-    //   sides,
-    //   3 * (Math.PI / 2),
-    // ).map((p) => ({
-    //   x: p[0],
-    //   y: p[1],
-    // }));
 
     const path = points.map((p, i) =>
       i === 0
