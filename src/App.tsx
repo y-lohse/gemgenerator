@@ -6,6 +6,7 @@ import {
   evenlySpacedEllipsePoints,
   getAngle,
   getCentroid,
+  getVectorLength,
   normalizedAngleDifference,
 } from "./ellipse";
 import BezierEasing from "bezier-easing";
@@ -13,15 +14,16 @@ import BezierEasing from "bezier-easing";
 function App() {
   const drawAreaRef = useRef<HTMLDivElement | null>(null);
 
-  const [sides, setSides] = useState(6);
-  const [widthFactor, setWidthFactor] = useState(0.5);
+  const [sides, setSides] = useState(8);
+  const [widthFactor, setWidthFactor] = useState(0.7);
   const [heightFactor, setHeightFactor] = useState(0.7);
-  const [levelsCount, setLevelsCount] = useState(2);
-  const [outsideSpread, setOutsideSpread] = useState(0.5);
-  const [centerSpread, setCenterSpread] = useState(0.5);
+  const [levelsCount, setLevelsCount] = useState(4);
+  const [outsideSpread, setOutsideSpread] = useState(0);
+  const [centerSpread, setCenterSpread] = useState(1);
   const [isPointy, setIsPointy] = useState(false);
   const [useAlternateAngle, setUseAlternateAngle] = useState(false);
   const [lightSourcePosition, setLightSourcePosition] = useState(3);
+  const [edgeSmoothness, setEdgeSmoothness] = useState(0.5);
 
   const maxLevels = Math.round(
     (Math.min(widthFactor, heightFactor) - 0.2) * 10,
@@ -101,12 +103,26 @@ function App() {
     }
 
     const lightSourceAngle = lightSourcePosition * (Math.PI / 4);
+    const maxDistance = Math.max(maxWidth, maxHeight);
 
     faces.forEach((polyPoints) => {
       const centroid = getCentroid(polyPoints);
       const centroidAngle = getAngle(centroid[0], centroid[1]);
-      const diff = normalizedAngleDifference(lightSourceAngle, centroidAngle);
-      const light = 90 - 70 * diff;
+      const elevation =
+        (maxDistance - getVectorLength(centroid[0], centroid[1])) / maxDistance;
+      const dimmingEffect =
+        normalizedAngleDifference(lightSourceAngle, centroidAngle) *
+        (1 - elevation);
+
+      const maxLuminosity = 50;
+      const minLuminosity = 10;
+      const luminosityVariance = maxLuminosity - minLuminosity;
+      const light = maxLuminosity - luminosityVariance * dimmingEffect;
+
+      const strokeMaxLight = luminosityVariance;
+      const strokeMinLight = minLuminosity;
+      const strokeVariance = strokeMaxLight - strokeMinLight;
+      const strokeLight = minLuminosity + strokeVariance * edgeSmoothness;
 
       draw
         .polygon(
@@ -115,7 +131,7 @@ function App() {
             .join(" "),
         )
         .css("fill", `hsl(354, 80%, ${light}%)`)
-        .css("stroke", "hsl(354, 80%, 15%)")
+        .css("stroke", `hsl(354, 80%, ${strokeLight}%)`)
         .attr("stroke-width", 1);
     });
 
@@ -134,6 +150,7 @@ function App() {
     isPointy,
     useAlternateAngle,
     lightSourcePosition,
+    edgeSmoothness,
   ]);
 
   const minScaleFactor = 0.3;
@@ -208,6 +225,14 @@ function App() {
             label={"Alternate angle"}
             value={useAlternateAngle}
             onChange={setUseAlternateAngle}
+          />
+          <SliderSetting
+            label="Edge Smoothness"
+            value={edgeSmoothness}
+            onChange={setEdgeSmoothness}
+            min={0}
+            max={1}
+            step={0.1}
           />
         </div>
       </div>

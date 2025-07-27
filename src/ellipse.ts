@@ -68,3 +68,7 @@ export function normalizedAngleDifference(
   const minDiff = diff > Math.PI ? 2 * Math.PI - diff : diff;
   return minDiff / Math.PI;
 }
+
+export function getVectorLength(x: number, y: number): number {
+  return Math.sqrt(x * x + y * y);
+}
