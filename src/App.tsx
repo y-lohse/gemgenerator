@@ -10,19 +10,21 @@ function App() {
   const [sides, setSides] = useState(6);
   const [widthFactor, setWidthFactor] = useState(0.5);
   const [heightFactor, setHeightFactor] = useState(0.7);
-  const [stepsCount, setStepsCount] = useState(2);
-  const [initialSpread, setInitialSpread] = useState(0.5);
-  const [finalSpread, setFinalSpread] = useState(0.5);
+  const [levelsCount, setLevelsCount] = useState(2);
+  const [outsideSpread, setOutsideSpread] = useState(0.5);
+  const [centerSpread, setCenterSpread] = useState(0.5);
 
-  const maxSteps = Math.round((Math.min(widthFactor, heightFactor) - 0.2) * 10);
+  const maxLevels = Math.round(
+    (Math.min(widthFactor, heightFactor) - 0.2) * 10,
+  );
 
   useEffect(
-    function reduceStepsIfNeeded() {
-      if (stepsCount > maxSteps) {
-        setStepsCount(maxSteps);
+    function reduceLevelsIfNeeded() {
+      if (levelsCount > maxLevels) {
+        setLevelsCount(maxLevels);
       }
     },
-    [maxSteps, stepsCount],
+    [maxLevels, levelsCount],
   );
 
   useEffect(() => {
@@ -38,44 +40,63 @@ function App() {
     const maxWidth = sceneWidth / 2.4;
     const maxHeight = sceneHeight / 2.4;
 
-    const availableSpaceForSteps = Math.min(widthFactor, heightFactor) - 0.1;
-    const easing = BezierEasing(0, initialSpread, 1, finalSpread);
+    const availableSpaceForLevels = Math.min(widthFactor, heightFactor) - 0.1;
+    const easing = BezierEasing(0, outsideSpread, 1, centerSpread);
 
-    for (let i = 0; i < stepsCount; i++) {
-      const t = i / maxSteps;
+    type LevelPoints = Array<[number, number]>;
+    const levels: Array<LevelPoints> = [];
+    for (let i = 0; i < levelsCount; i++) {
+      const t = i / maxLevels;
 
-      const stepWidthFactor = widthFactor - easing(t) * availableSpaceForSteps;
-      const stepHeightFactor =
-        heightFactor - easing(t) * availableSpaceForSteps;
+      const levelWidthFactor =
+        widthFactor - easing(t) * availableSpaceForLevels;
+      const levelHeightFactor =
+        heightFactor - easing(t) * availableSpaceForLevels;
       const points = evenlySpacedEllipsePoints(
-        maxWidth * stepWidthFactor,
-        maxHeight * stepHeightFactor,
+        maxWidth * levelWidthFactor,
+        maxHeight * levelHeightFactor,
         sides,
         3 * (Math.PI / 2),
       );
-      const path = points.map((p, i) =>
-        i === 0
-          ? `M${renderOffsetX + p[0]},${renderOffsetY + p[1]}`
-          : `L${renderOffsetX + p[0]},${renderOffsetY + p[1]}`,
-      );
-      path.push("Z");
+      levels.push(points);
+    }
+
+    type PolyPoints = Array<[number, number]>;
+    const faces: Array<PolyPoints> = [];
+
+    for (let i = 0; i < levels.length - 1; i++) {
+      for (let j = 0; j < sides; j++) {
+        faces.push([
+          levels[i][j],
+          levels[i + 1][j],
+          levels[i + 1][(j + 1) % sides],
+          levels[i][(j + 1) % sides],
+        ]);
+      }
+    }
+
+    faces.forEach((polyPoints) => {
       draw
-        .path(path.join(" "))
+        .polygon(
+          polyPoints
+            .map((p) => `${renderOffsetX + p[0]},${renderOffsetY + p[1]}`)
+            .join(" "),
+        )
         .fill("none")
         .stroke({ width: 1, color: "#000" });
-    }
+    });
 
     return () => {
       draw.remove();
     };
   }, [
     drawAreaRef,
-    finalSpread,
+    centerSpread,
     heightFactor,
-    initialSpread,
-    maxSteps,
+    outsideSpread,
+    maxLevels,
     sides,
-    stepsCount,
+    levelsCount,
     widthFactor,
   ]);
 
@@ -112,24 +133,24 @@ function App() {
             step={0.1}
           />
           <SliderSetting
-            label="Steps"
-            value={stepsCount}
-            onChange={setStepsCount}
+            label="Levels"
+            value={levelsCount}
+            onChange={setLevelsCount}
             min={2}
-            max={maxSteps}
+            max={maxLevels}
           />
           <SliderSetting
-            label="Initial Spread"
-            value={initialSpread}
-            onChange={setInitialSpread}
+            label="Outside Spread"
+            value={outsideSpread}
+            onChange={setOutsideSpread}
             min={0}
             max={0.9}
             step={0.1}
           />
           <SliderSetting
-            label="Final Spread"
-            value={finalSpread}
-            onChange={setFinalSpread}
+            label="Center Spread"
+            value={centerSpread}
+            onChange={setCenterSpread}
             min={0}
             max={0.9}
             step={0.1}
