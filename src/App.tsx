@@ -15,6 +15,7 @@ function App() {
   const [outsideSpread, setOutsideSpread] = useState(0.5);
   const [centerSpread, setCenterSpread] = useState(0.5);
   const [isPointy, setIsPointy] = useState(false);
+  const [useAlternateAngle, setUseAlternateAngle] = useState(false);
 
   const maxLevels = Math.round(
     (Math.min(widthFactor, heightFactor) - 0.2) * 10,
@@ -42,6 +43,10 @@ function App() {
     const maxWidth = sceneWidth / 2.4;
     const maxHeight = sceneHeight / 2.4;
 
+    const hasEvenSides = sides % 2 === 0;
+    const alternateModifier = hasEvenSides ? 0 : 3;
+    const angle = (useAlternateAngle ? alternateModifier : 1) * (Math.PI / 2);
+
     const availableSpaceForLevels = Math.min(widthFactor, heightFactor) - 0.1;
     const easing = BezierEasing(0, outsideSpread, 1, centerSpread);
 
@@ -58,7 +63,7 @@ function App() {
         maxWidth * levelWidthFactor,
         maxHeight * levelHeightFactor,
         sides,
-        3 * (Math.PI / 2),
+        angle,
       );
       levels.push(points);
     }
@@ -111,6 +116,7 @@ function App() {
     levelsCount,
     widthFactor,
     isPointy,
+    useAlternateAngle,
   ]);
 
   const minScaleFactor = 0.3;
@@ -172,6 +178,11 @@ function App() {
             label={"Pointy"}
             value={isPointy}
             onChange={setIsPointy}
+          />
+          <ToggleSetting
+            label={"Alternate angle"}
+            value={useAlternateAngle}
+            onChange={setUseAlternateAngle}
           />
         </div>
       </div>
