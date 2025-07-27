@@ -1,6 +1,7 @@
 import { SVG } from "@svgdotjs/svg.js";
 import { useEffect, useRef, useState } from "react";
 import { SliderSetting } from "./components/sliderSetting";
+import { ToggleSetting } from "./components/toggleSetting";
 import { evenlySpacedEllipsePoints } from "./ellipse";
 import BezierEasing from "bezier-easing";
 
@@ -13,6 +14,7 @@ function App() {
   const [levelsCount, setLevelsCount] = useState(2);
   const [outsideSpread, setOutsideSpread] = useState(0.5);
   const [centerSpread, setCenterSpread] = useState(0.5);
+  const [isPointy, setIsPointy] = useState(false);
 
   const maxLevels = Math.round(
     (Math.min(widthFactor, heightFactor) - 0.2) * 10,
@@ -75,6 +77,16 @@ function App() {
       }
     }
 
+    if (isPointy) {
+      for (let i = 0; i < sides; i++) {
+        faces.push([
+          levels[levels.length - 1][i],
+          levels[levels.length - 1][(i + 1) % sides],
+          [0, 0],
+        ]);
+      }
+    }
+
     faces.forEach((polyPoints) => {
       draw
         .polygon(
@@ -98,6 +110,7 @@ function App() {
     sides,
     levelsCount,
     widthFactor,
+    isPointy,
   ]);
 
   const minScaleFactor = 0.3;
@@ -154,6 +167,11 @@ function App() {
             min={0}
             max={0.9}
             step={0.1}
+          />
+          <ToggleSetting
+            label={"Pointy"}
+            value={isPointy}
+            onChange={setIsPointy}
           />
         </div>
       </div>

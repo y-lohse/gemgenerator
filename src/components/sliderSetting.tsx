@@ -19,7 +19,7 @@ function SliderSetting({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-row justify-between">
-        <Label htmlFor="email">{label}</Label>
+        <Label>{label}</Label>
         <span className="text-muted-foreground">{value}</span>
       </div>
       <Slider
