@@ -1,9 +1,11 @@
 import { SVG } from "@svgdotjs/svg.js";
+import "@svgdotjs/svg.filter.js";
 import BezierEasing from "bezier-easing";
 import { useEffect, useRef, useState } from "react";
 import { SliderSetting } from "./components/sliderSetting";
 import { ToggleSetting } from "./components/toggleSetting";
 import {
+  createVector,
   evenlySpacedEllipsePoints,
   getAngle,
   getCentroid,
@@ -24,6 +26,9 @@ function App() {
   const [isPointy, setIsPointy] = useState(false);
   const [useAlternateAngle, setUseAlternateAngle] = useState(false);
   const [lightSourcePosition, setLightSourcePosition] = useState(3);
+  const [hue, setHue] = useState(0);
+  const [luminosity, setLuminosity] = useState(40);
+  const [contrast, setContrast] = useState(30);
 
   const maxLevels = Math.round(
     (Math.min(widthFactor, heightFactor) - 0.2) * 10,
@@ -105,19 +110,24 @@ function App() {
     const lightSourceAngle = lightSourcePosition * (Math.PI / 4);
     const maxDistance = Math.max(maxWidth, maxHeight);
 
+    const outline = levels[0];
+    const lightVector = createVector(4, -lightSourceAngle);
+    // draw
+    //   .polygon(
+    //     outline
+    //       .map((p) => `${renderOffsetX + p[0]},${renderOffsetY + p[1]}`)
+    //       .join(" "),
+    //   )
+    //   .opacity(0.5)
+    //   .filterWith((add) => {
+    //     add.dropShadow(add.$sourceAlpha, lightVector[0], lightVector[1], 4);
+    //   });
+
     faces.forEach((polyPoints, faceIndex) => {
       const centroid = getCentroid(polyPoints);
       const centroidAngle = getAngle(centroid[0], centroid[1]);
       const elevation =
         (maxDistance - getVectorLength(centroid[0], centroid[1])) / maxDistance;
-      const dimmingEffect =
-        normalizedAngleDifference(lightSourceAngle, centroidAngle) *
-        (1 - elevation);
-
-      const maxLuminosity = 50;
-      const minLuminosity = 10;
-      const luminosityVariance = maxLuminosity - minLuminosity;
-      const light = maxLuminosity - luminosityVariance * dimmingEffect;
 
       const isTopSurface = faceIndex === faces.length - 1 && !isPointy;
 
@@ -126,17 +136,24 @@ function App() {
       const gradientAngle = isTopSurface
         ? lightSourceAngle + Math.PI / 2
         : normalAngle;
+
+      const minLuminosity = Math.max(luminosity - contrast, 0);
+
+      const dimmingEffect =
+        normalizedAngleDifference(lightSourceAngle, centroidAngle) *
+        (1 - elevation);
+      const luminosityVariance = luminosity - minLuminosity;
+      const light = luminosity - luminosityVariance * dimmingEffect;
+
       const gradient = draw
         .gradient("linear", function (add) {
-          add.stop(0, `hsl(354, 80%, ${light - 5}%)`);
-          add.stop(0.2, `hsl(354, 80%, ${light}%)`);
-          add.stop(0.5, `hsl(354, 80%, ${light + 10}%)`);
-          add.stop(0.8, `hsl(354, 80%, ${light}%)`);
-          add.stop(1, `hsl(354, 80%, ${light - 5}%)`);
+          add.stop(0, `hsl(${hue}, 80%, ${light - 10}%)`);
+          add.stop(0.2, `hsl(${hue}, 80%, ${light}%)`);
+          add.stop(0.5, `hsl(${hue}, 80%, ${light + 10}%)`);
+          add.stop(0.8, `hsl(${hue}, 80%, ${light}%)`);
+          add.stop(1, `hsl(${hue}, 80%, ${light - 10}%)`);
         })
         .rotate((gradientAngle * 180) / Math.PI, 0.5, 0.5);
-
-      const strokeLight = minLuminosity + luminosityVariance - minLuminosity;
 
       draw
         .polygon(
@@ -144,24 +161,8 @@ function App() {
             .map((p) => `${renderOffsetX + p[0]},${renderOffsetY + p[1]}`)
             .join(" "),
         )
-        .fill(gradient)
-        .css("stroke", `hsl(354, 80%, ${strokeLight}%)`)
-        .attr("stroke-width", 1);
+        .fill(gradient);
     });
-
-    // const gradient = draw
-    //   .gradient("linear", function (add) {
-    //     add.stop(0, `hsl(354, 80%, 100%)`);
-    //     add.stop(1, `hsl(354, 80%, 50%)`);
-    //   })
-    //   .rotate(180, 0.5, 0.5);
-    // .attr({
-    //   x1: 0,
-    //   y1: 0,
-    //   x2: 1,
-    //   y2: 0,
-    // });
-    // draw.rect(500, 500).fill(gradient);
 
     return () => {
       draw.remove();
@@ -178,6 +179,9 @@ function App() {
     isPointy,
     useAlternateAngle,
     lightSourcePosition,
+    hue,
+    luminosity,
+    contrast,
   ]);
 
   const minScaleFactor = 0.3;
@@ -252,6 +256,27 @@ function App() {
             label={"Alternate angle"}
             value={useAlternateAngle}
             onChange={setUseAlternateAngle}
+          />
+          <SliderSetting
+            label="Hue"
+            value={hue}
+            onChange={setHue}
+            min={0}
+            max={360}
+          />
+          <SliderSetting
+            label="Luminosity"
+            value={luminosity}
+            onChange={setLuminosity}
+            min={30}
+            max={50}
+          />
+          <SliderSetting
+            label="Contrast"
+            value={contrast}
+            onChange={setContrast}
+            min={0}
+            max={50}
           />
         </div>
       </div>

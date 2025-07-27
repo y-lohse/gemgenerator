@@ -60,6 +60,13 @@ export function getAngle(x: number, y: number): number {
   return Math.atan2(-y, -x);
 }
 
+export function createVector(
+  distance: number,
+  angle: number,
+): [number, number] {
+  return [distance * Math.cos(angle), -distance * Math.sin(angle)];
+}
+
 export function normalizedAngleDifference(
   angle1: number,
   angle2: number,
