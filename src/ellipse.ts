@@ -72,3 +72,13 @@ export function normalizedAngleDifference(
 export function getVectorLength(x: number, y: number): number {
   return Math.sqrt(x * x + y * y);
 }
+
+export function normalizeVector(x: number, y: number): [number, number] {
+  const length = getVectorLength(x, y);
+  return length === 0 ? [0, 0] : [x / length, y / length];
+}
+
+export function getNormal(x: number, y: number): [number, number] {
+  const length = getVectorLength(x, y);
+  return length === 0 ? [0, 0] : [-y / length, x / length];
+}

@@ -1,4 +1,5 @@
 import { SVG } from "@svgdotjs/svg.js";
+import BezierEasing from "bezier-easing";
 import { useEffect, useRef, useState } from "react";
 import { SliderSetting } from "./components/sliderSetting";
 import { ToggleSetting } from "./components/toggleSetting";
@@ -6,24 +7,23 @@ import {
   evenlySpacedEllipsePoints,
   getAngle,
   getCentroid,
+  getNormal,
   getVectorLength,
   normalizedAngleDifference,
 } from "./ellipse";
-import BezierEasing from "bezier-easing";
 
 function App() {
   const drawAreaRef = useRef<HTMLDivElement | null>(null);
 
-  const [sides, setSides] = useState(8);
-  const [widthFactor, setWidthFactor] = useState(0.7);
-  const [heightFactor, setHeightFactor] = useState(0.7);
-  const [levelsCount, setLevelsCount] = useState(4);
-  const [outsideSpread, setOutsideSpread] = useState(0);
+  const [sides, setSides] = useState(6);
+  const [widthFactor, setWidthFactor] = useState(0.6);
+  const [heightFactor, setHeightFactor] = useState(0.9);
+  const [levelsCount, setLevelsCount] = useState(2);
+  const [outsideSpread, setOutsideSpread] = useState(0.5);
   const [centerSpread, setCenterSpread] = useState(1);
   const [isPointy, setIsPointy] = useState(false);
   const [useAlternateAngle, setUseAlternateAngle] = useState(false);
   const [lightSourcePosition, setLightSourcePosition] = useState(3);
-  const [edgeSmoothness, setEdgeSmoothness] = useState(0.5);
 
   const maxLevels = Math.round(
     (Math.min(widthFactor, heightFactor) - 0.2) * 10,
@@ -105,7 +105,7 @@ function App() {
     const lightSourceAngle = lightSourcePosition * (Math.PI / 4);
     const maxDistance = Math.max(maxWidth, maxHeight);
 
-    faces.forEach((polyPoints) => {
+    faces.forEach((polyPoints, faceIndex) => {
       const centroid = getCentroid(polyPoints);
       const centroidAngle = getAngle(centroid[0], centroid[1]);
       const elevation =
@@ -119,10 +119,24 @@ function App() {
       const luminosityVariance = maxLuminosity - minLuminosity;
       const light = maxLuminosity - luminosityVariance * dimmingEffect;
 
-      const strokeMaxLight = luminosityVariance;
-      const strokeMinLight = minLuminosity;
-      const strokeVariance = strokeMaxLight - strokeMinLight;
-      const strokeLight = minLuminosity + strokeVariance * edgeSmoothness;
+      const isTopSurface = faceIndex === faces.length - 1 && !isPointy;
+
+      const normal = getNormal(centroid[0], centroid[1]);
+      const normalAngle = getAngle(normal[0], normal[1]);
+      const gradientAngle = isTopSurface
+        ? lightSourceAngle + Math.PI / 2
+        : normalAngle;
+      const gradient = draw
+        .gradient("linear", function (add) {
+          add.stop(0, `hsl(354, 80%, ${light - 5}%)`);
+          add.stop(0.2, `hsl(354, 80%, ${light}%)`);
+          add.stop(0.5, `hsl(354, 80%, ${light + 10}%)`);
+          add.stop(0.8, `hsl(354, 80%, ${light}%)`);
+          add.stop(1, `hsl(354, 80%, ${light - 5}%)`);
+        })
+        .rotate((gradientAngle * 180) / Math.PI, 0.5, 0.5);
+
+      const strokeLight = minLuminosity + luminosityVariance - minLuminosity;
 
       draw
         .polygon(
@@ -130,10 +144,24 @@ function App() {
             .map((p) => `${renderOffsetX + p[0]},${renderOffsetY + p[1]}`)
             .join(" "),
         )
-        .css("fill", `hsl(354, 80%, ${light}%)`)
+        .fill(gradient)
         .css("stroke", `hsl(354, 80%, ${strokeLight}%)`)
         .attr("stroke-width", 1);
     });
+
+    // const gradient = draw
+    //   .gradient("linear", function (add) {
+    //     add.stop(0, `hsl(354, 80%, 100%)`);
+    //     add.stop(1, `hsl(354, 80%, 50%)`);
+    //   })
+    //   .rotate(180, 0.5, 0.5);
+    // .attr({
+    //   x1: 0,
+    //   y1: 0,
+    //   x2: 1,
+    //   y2: 0,
+    // });
+    // draw.rect(500, 500).fill(gradient);
 
     return () => {
       draw.remove();
@@ -150,7 +178,6 @@ function App() {
     isPointy,
     useAlternateAngle,
     lightSourcePosition,
-    edgeSmoothness,
   ]);
 
   const minScaleFactor = 0.3;
@@ -225,14 +252,6 @@ function App() {
             label={"Alternate angle"}
             value={useAlternateAngle}
             onChange={setUseAlternateAngle}
-          />
-          <SliderSetting
-            label="Edge Smoothness"
-            value={edgeSmoothness}
-            onChange={setEdgeSmoothness}
-            min={0}
-            max={1}
-            step={0.1}
           />
         </div>
       </div>
