@@ -2,7 +2,12 @@ import { SVG } from "@svgdotjs/svg.js";
 import { useEffect, useRef, useState } from "react";
 import { SliderSetting } from "./components/sliderSetting";
 import { ToggleSetting } from "./components/toggleSetting";
-import { evenlySpacedEllipsePoints } from "./ellipse";
+import {
+  evenlySpacedEllipsePoints,
+  getAngle,
+  getCentroid,
+  normalizedAngleDifference,
+} from "./ellipse";
 import BezierEasing from "bezier-easing";
 
 function App() {
@@ -16,6 +21,7 @@ function App() {
   const [centerSpread, setCenterSpread] = useState(0.5);
   const [isPointy, setIsPointy] = useState(false);
   const [useAlternateAngle, setUseAlternateAngle] = useState(false);
+  const [lightSourcePosition, setLightSourcePosition] = useState(3);
 
   const maxLevels = Math.round(
     (Math.min(widthFactor, heightFactor) - 0.2) * 10,
@@ -90,17 +96,27 @@ function App() {
           [0, 0],
         ]);
       }
+    } else {
+      faces.push(levels[levels.length - 1]);
     }
 
+    const lightSourceAngle = lightSourcePosition * (Math.PI / 4);
+
     faces.forEach((polyPoints) => {
+      const centroid = getCentroid(polyPoints);
+      const centroidAngle = getAngle(centroid[0], centroid[1]);
+      const diff = normalizedAngleDifference(lightSourceAngle, centroidAngle);
+      const light = 90 - 70 * diff;
+
       draw
         .polygon(
           polyPoints
             .map((p) => `${renderOffsetX + p[0]},${renderOffsetY + p[1]}`)
             .join(" "),
         )
-        .fill("none")
-        .stroke({ width: 1, color: "#000" });
+        .css("fill", `hsl(354, 80%, ${light}%)`)
+        .css("stroke", "hsl(354, 80%, 15%)")
+        .attr("stroke-width", 1);
     });
 
     return () => {
@@ -117,6 +133,7 @@ function App() {
     widthFactor,
     isPointy,
     useAlternateAngle,
+    lightSourcePosition,
   ]);
 
   const minScaleFactor = 0.3;
@@ -128,6 +145,14 @@ function App() {
       </div>
       <div className="flex-1  bg-slate-950 text-primary-foreground overflow-auto">
         <div className="max-w-md mx-auto p-6 flex flex-col gap-8">
+          <SliderSetting
+            label="Light position"
+            value={lightSourcePosition}
+            onChange={setLightSourcePosition}
+            min={0}
+            max={7}
+            step={0.5}
+          />
           <SliderSetting
             label="Sides"
             value={sides}

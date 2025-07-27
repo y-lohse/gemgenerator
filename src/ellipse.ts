@@ -47,3 +47,24 @@ export function evenlySpacedEllipsePoints(
     return [a * Math.cos(t), b * Math.sin(t)];
   });
 }
+
+export function getCentroid(points: Array<[number, number]>): [number, number] {
+  const n = points.length;
+  if (n === 0) return [0, 0];
+  const sumX = points.reduce((acc, [x]) => acc + x, 0);
+  const sumY = points.reduce((acc, [, y]) => acc + y, 0);
+  return [sumX / n, sumY / n];
+}
+
+export function getAngle(x: number, y: number): number {
+  return Math.atan2(-y, -x);
+}
+
+export function normalizedAngleDifference(
+  angle1: number,
+  angle2: number,
+): number {
+  const diff = Math.abs(angle1 - angle2) % (2 * Math.PI);
+  const minDiff = diff > Math.PI ? 2 * Math.PI - diff : diff;
+  return minDiff / Math.PI;
+}
