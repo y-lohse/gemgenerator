@@ -1,7 +1,8 @@
-import { SVG } from "@svgdotjs/svg.js";
 import "@svgdotjs/svg.filter.js";
+import { SVG } from "@svgdotjs/svg.js";
+import Alea from "alea";
 import BezierEasing from "bezier-easing";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SliderSetting } from "./components/sliderSetting";
 import { ToggleSetting } from "./components/toggleSetting";
 import {
@@ -9,26 +10,73 @@ import {
   evenlySpacedEllipsePoints,
   getAngle,
   getCentroid,
-  getNormal,
   getVectorLength,
   normalizedAngleDifference,
 } from "./ellipse";
 
+const useGemSettings = (seed: string, minScaleFactor: number) => {
+  const prng = useMemo(() => Alea(seed), [seed]);
+
+  const randomBetween = useCallback(
+    (min: number, max: number, floating: boolean = false): number => {
+      const randomValue = prng();
+      return floating
+        ? min + randomValue * (max - min)
+        : Math.floor(min + randomValue * (max - min));
+    },
+    [prng],
+  );
+
+  return useMemo(() => {
+    const widthFactor = randomBetween(minScaleFactor, 1, true);
+    const heightFactor = randomBetween(
+      Math.max(minScaleFactor, widthFactor - 0.3),
+      Math.min(1, widthFactor + 0.3),
+      true,
+    );
+
+    return {
+      sides: randomBetween(3, 12),
+      widthFactor: widthFactor,
+      heightFactor: heightFactor,
+      levelsCount: randomBetween(2, 5),
+      outsideSpread: randomBetween(0.1, 1, true),
+      centerSpread: randomBetween(0.1, 1, true),
+      useAlternateAngle: randomBetween(0, 1, true) > 0.5,
+      lightSourcePosition: randomBetween(0, 7),
+      reflections: Array.from({ length: 12 * 5 * 5 }, () =>
+        randomBetween(0, 1, true),
+      ),
+      hue: randomBetween(0, 360),
+      luminosity: randomBetween(30, 50),
+      contrast: randomBetween(10, 50),
+    };
+  }, [minScaleFactor, randomBetween]);
+};
+
 function App() {
   const drawAreaRef = useRef<HTMLDivElement | null>(null);
 
-  const [sides, setSides] = useState(6);
-  const [widthFactor, setWidthFactor] = useState(0.6);
-  const [heightFactor, setHeightFactor] = useState(0.9);
-  const [levelsCount, setLevelsCount] = useState(2);
-  const [outsideSpread, setOutsideSpread] = useState(0.5);
-  const [centerSpread, setCenterSpread] = useState(1);
-  const [isPointy, setIsPointy] = useState(false);
-  const [useAlternateAngle, setUseAlternateAngle] = useState(false);
-  const [lightSourcePosition, setLightSourcePosition] = useState(3);
-  const [hue, setHue] = useState(0);
-  const [luminosity, setLuminosity] = useState(40);
-  const [contrast, setContrast] = useState(30);
+  const minScaleFactor = 0.4;
+
+  const gem = useGemSettings(new Date().getTime().toString(), minScaleFactor);
+
+  const [sides, setSides] = useState(gem.sides);
+  const [widthFactor, setWidthFactor] = useState(gem.widthFactor);
+  const [heightFactor, setHeightFactor] = useState(gem.heightFactor);
+  const [levelsCount, setLevelsCount] = useState(gem.levelsCount);
+  const [outsideSpread, setOutsideSpread] = useState(gem.outsideSpread);
+  const [centerSpread, setCenterSpread] = useState(gem.centerSpread);
+  const [useAlternateAngle, setUseAlternateAngle] = useState(
+    gem.useAlternateAngle,
+  );
+  const [lightSourcePosition, setLightSourcePosition] = useState(
+    gem.lightSourcePosition,
+  );
+  const [reflections] = useState(gem.reflections);
+  const [hue, setHue] = useState(gem.hue);
+  const [luminosity, setLuminosity] = useState(gem.luminosity);
+  const [contrast, setContrast] = useState(gem.contrast);
 
   const maxLevels = Math.round(
     (Math.min(widthFactor, heightFactor) - 0.2) * 10,
@@ -86,41 +134,58 @@ function App() {
 
     for (let i = 0; i < levels.length - 1; i++) {
       for (let j = 0; j < sides; j++) {
+        // single face
         faces.push([
           levels[i][j],
           levels[i + 1][j],
           levels[i + 1][(j + 1) % sides],
           levels[i][(j + 1) % sides],
         ]);
+
+        // 4 faces
+        // const mainFace = [
+        //   levels[i][j],
+        //   levels[i + 1][j],
+        //   levels[i + 1][(j + 1) % sides],
+        //   levels[i][(j + 1) % sides],
+        // ];
+        // const centroid = getCentroid(mainFace);
+        // faces.push([levels[i][j], levels[i + 1][j], centroid]);
+        // faces.push([
+        //   levels[i + 1][j],
+        //   levels[i + 1][(j + 1) % sides],
+        //   centroid,
+        // ]);
+        // faces.push([
+        //   levels[i + 1][(j + 1) % sides],
+        //   levels[i][(j + 1) % sides],
+        //   centroid,
+        // ]);
+        // faces.push([levels[i][(j + 1) % sides], levels[i][j], centroid]);
       }
     }
 
-    if (isPointy) {
-      for (let i = 0; i < sides; i++) {
-        faces.push([
-          levels[levels.length - 1][i],
-          levels[levels.length - 1][(i + 1) % sides],
-          [0, 0],
-        ]);
-      }
-    } else {
-      faces.push(levels[levels.length - 1]);
-    }
+    const topFace = levels[levels.length - 1];
+
+    // unified top face
+    faces.push(topFace);
 
     const lightSourceAngle = lightSourcePosition * (Math.PI / 4);
     const maxDistance = Math.max(maxWidth, maxHeight);
 
     const outline = levels[0];
-    const lightVector = createVector(4, -lightSourceAngle);
+    const lightVector = createVector(8, -lightSourceAngle);
     // draw
     //   .polygon(
     //     outline
     //       .map((p) => `${renderOffsetX + p[0]},${renderOffsetY + p[1]}`)
     //       .join(" "),
     //   )
-    //   .opacity(0.5)
     //   .filterWith((add) => {
-    //     add.dropShadow(add.$sourceAlpha, lightVector[0], lightVector[1], 4);
+    //     add.dropShadow(add.$source, lightVector[0], lightVector[1], 1).attr({
+    //       "flood-color": `hsl(${hue}, 30%, 50%)`,
+    //       "flood-opacity": 1,
+    //     });
     //   });
 
     faces.forEach((polyPoints, faceIndex) => {
@@ -129,29 +194,37 @@ function App() {
       const elevation =
         (maxDistance - getVectorLength(centroid[0], centroid[1])) / maxDistance;
 
-      const isTopSurface = faceIndex === faces.length - 1 && !isPointy;
+      const isTopSurface = faceIndex === faces.length - 1;
 
-      const normal = getNormal(centroid[0], centroid[1]);
-      const normalAngle = getAngle(normal[0], normal[1]);
       const gradientAngle = isTopSurface
         ? lightSourceAngle + Math.PI / 2
-        : normalAngle;
+        : centroidAngle + Math.PI / 2;
 
       const minLuminosity = Math.max(luminosity - contrast, 0);
 
       const dimmingEffect =
         normalizedAngleDifference(lightSourceAngle, centroidAngle) *
         (1 - elevation);
+
       const luminosityVariance = luminosity - minLuminosity;
       const light = luminosity - luminosityVariance * dimmingEffect;
 
+      const reflectionPoints = isTopSurface
+        ? [0.2, 0.4, 0.5, 0.7, 0.8]
+        : [0.2, 0.5, 0.7];
+
       const gradient = draw
-        .gradient("linear", function (add) {
-          add.stop(0, `hsl(${hue}, 80%, ${light - 10}%)`);
-          add.stop(0.2, `hsl(${hue}, 80%, ${light}%)`);
-          add.stop(0.5, `hsl(${hue}, 80%, ${light + 10}%)`);
-          add.stop(0.8, `hsl(${hue}, 80%, ${light}%)`);
-          add.stop(1, `hsl(${hue}, 80%, ${light - 10}%)`);
+        .gradient("linear", (add) => {
+          add.stop(0, `hsl(${hue}, 80%, ${light}%)`);
+
+          reflectionPoints.forEach((step, stepIndex) => {
+            const stepVariance =
+              -10 +
+              reflections[faceIndex * reflectionPoints.length + stepIndex] * 20;
+            add.stop(step, `hsl(${hue}, 80%, ${light + stepVariance}%)`);
+          });
+
+          add.stop(1, `hsl(${hue}, 80%, ${light}%)`);
         })
         .rotate((gradientAngle * 180) / Math.PI, 0.5, 0.5);
 
@@ -168,23 +241,20 @@ function App() {
       draw.remove();
     };
   }, [
-    drawAreaRef,
     centerSpread,
-    heightFactor,
-    outsideSpread,
-    maxLevels,
-    sides,
-    levelsCount,
-    widthFactor,
-    isPointy,
-    useAlternateAngle,
-    lightSourcePosition,
-    hue,
-    luminosity,
     contrast,
+    heightFactor,
+    hue,
+    levelsCount,
+    lightSourcePosition,
+    luminosity,
+    maxLevels,
+    outsideSpread,
+    reflections,
+    sides,
+    useAlternateAngle,
+    widthFactor,
   ]);
-
-  const minScaleFactor = 0.3;
 
   return (
     <div className="h-screen max-h-screen flex flex-col lg:flex-row justify-center items-stretch overflow-hidden">
@@ -246,11 +316,6 @@ function App() {
             min={0}
             max={0.9}
             step={0.1}
-          />
-          <ToggleSetting
-            label={"Pointy"}
-            value={isPointy}
-            onChange={setIsPointy}
           />
           <ToggleSetting
             label={"Alternate angle"}
