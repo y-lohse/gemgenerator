@@ -59,7 +59,7 @@ function App() {
 
   const minScaleFactor = 0.4;
 
-  const gem = useGemSettings(new Date().getTime().toString(), minScaleFactor);
+  const gem = useGemSettings("new Date().getTime().toString()", minScaleFactor);
 
   const [sides, setSides] = useState(gem.sides);
   const [widthFactor, setWidthFactor] = useState(gem.widthFactor);
@@ -141,27 +141,6 @@ function App() {
           levels[i + 1][(j + 1) % sides],
           levels[i][(j + 1) % sides],
         ]);
-
-        // 4 faces
-        // const mainFace = [
-        //   levels[i][j],
-        //   levels[i + 1][j],
-        //   levels[i + 1][(j + 1) % sides],
-        //   levels[i][(j + 1) % sides],
-        // ];
-        // const centroid = getCentroid(mainFace);
-        // faces.push([levels[i][j], levels[i + 1][j], centroid]);
-        // faces.push([
-        //   levels[i + 1][j],
-        //   levels[i + 1][(j + 1) % sides],
-        //   centroid,
-        // ]);
-        // faces.push([
-        //   levels[i + 1][(j + 1) % sides],
-        //   levels[i][(j + 1) % sides],
-        //   centroid,
-        // ]);
-        // faces.push([levels[i][(j + 1) % sides], levels[i][j], centroid]);
       }
     }
 
@@ -174,19 +153,22 @@ function App() {
     const maxDistance = Math.max(maxWidth, maxHeight);
 
     const outline = levels[0];
-    const lightVector = createVector(8, -lightSourceAngle);
-    // draw
-    //   .polygon(
-    //     outline
-    //       .map((p) => `${renderOffsetX + p[0]},${renderOffsetY + p[1]}`)
-    //       .join(" "),
-    //   )
-    //   .filterWith((add) => {
-    //     add.dropShadow(add.$source, lightVector[0], lightVector[1], 1).attr({
-    //       "flood-color": `hsl(${hue}, 30%, 50%)`,
-    //       "flood-opacity": 1,
-    //     });
-    //   });
+    const shadowSize = 32;
+    for (let i = 1; i < shadowSize; i *= 2) {
+      const lightVector = createVector(i, -lightSourceAngle);
+      draw
+        .polygon(
+          outline
+            .map((p) => `${renderOffsetX + p[0]},${renderOffsetY + p[1]}`)
+            .join(" "),
+        )
+        .filterWith((add) => {
+          add.dropShadow(add.$source, lightVector[0], lightVector[1], i).attr({
+            "flood-color": `hsl(${hue}, 30%, 40%)`,
+            "flood-opacity": 0.8 / (i / 3),
+          });
+        });
+    }
 
     faces.forEach((polyPoints, faceIndex) => {
       const centroid = getCentroid(polyPoints);
@@ -256,9 +238,16 @@ function App() {
     widthFactor,
   ]);
 
+  const complement = (hue + 20) % 361;
+
   return (
     <div className="h-screen max-h-screen flex flex-col lg:flex-row justify-center items-stretch overflow-hidden">
-      <div className="flex-1  bg-stone-200 flex justify-center items-center">
+      <div
+        className="flex-1  bg-stone-200 flex justify-center items-center"
+        style={{
+          backgroundColor: `hsl(${complement}, 40%, 90%)`,
+        }}
+      >
         <div ref={drawAreaRef} className="h-full aspect-square"></div>
       </div>
       <div className="flex-1  bg-slate-950 text-primary-foreground overflow-auto">
