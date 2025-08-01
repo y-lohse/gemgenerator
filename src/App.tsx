@@ -5,6 +5,7 @@ import BezierEasing from "bezier-easing";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SliderSetting } from "./components/sliderSetting";
 import { ToggleSetting } from "./components/toggleSetting";
+import { SeedSetting } from "./components/seedSetting";
 import {
   createVector,
   evenlySpacedEllipsePoints,
@@ -13,6 +14,56 @@ import {
   getVectorLength,
   normalizedAngleDifference,
 } from "./ellipse";
+
+const randomSeed = (): string => {
+  const adjectives = [
+    "Radiant",
+    "Shimmering",
+    "Luminous",
+    "Gleaming",
+    "Prismatic",
+    "Opulent",
+    "Vivid",
+    "Brilliant",
+    "Glittering",
+    "Dazzling",
+    "Iridescent",
+    "Sparkling",
+    "Majestic",
+    "Mystic",
+    "Enchanted",
+    "Celestial",
+    "Vibrant",
+    "Ethereal",
+    "Resplendent",
+    "Glorious",
+  ];
+  const nouns = [
+    "Crystal",
+    "Gem",
+    "Jewel",
+    "Stone",
+    "Facet",
+    "Prism",
+    "Diamond",
+    "Emerald",
+    "Sapphire",
+    "Ruby",
+    "Topaz",
+    "Quartz",
+    "Opal",
+    "Amethyst",
+    "Garnet",
+    "Onyx",
+    "Pearl",
+    "Agate",
+    "Tourmaline",
+    "Zircon",
+  ];
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const noun = nouns[Math.floor(Math.random() * nouns.length)];
+  return `${adj} ${noun}`;
+};
 
 const useGemSettings = (seed: string, minScaleFactor: number) => {
   const prng = useMemo(() => Alea(seed), [seed]);
@@ -55,11 +106,12 @@ const useGemSettings = (seed: string, minScaleFactor: number) => {
 };
 
 function App() {
+  const [seed, setSeed] = useState(randomSeed());
   const drawAreaRef = useRef<HTMLDivElement | null>(null);
 
   const minScaleFactor = 0.4;
 
-  const gem = useGemSettings("new Date().getTime().toString()", minScaleFactor);
+  const gem = useGemSettings(seed, minScaleFactor);
 
   const [sides, setSides] = useState(gem.sides);
   const [widthFactor, setWidthFactor] = useState(gem.widthFactor);
@@ -89,6 +141,23 @@ function App() {
       }
     },
     [maxLevels, levelsCount],
+  );
+
+  useEffect(
+    function onGemChange() {
+      setSides(gem.sides);
+      setWidthFactor(gem.widthFactor);
+      setHeightFactor(gem.heightFactor);
+      setLevelsCount(gem.levelsCount);
+      setOutsideSpread(gem.outsideSpread);
+      setCenterSpread(gem.centerSpread);
+      setUseAlternateAngle(gem.useAlternateAngle);
+      setLightSourcePosition(gem.lightSourcePosition);
+      setHue(gem.hue);
+      setLuminosity(gem.luminosity);
+      setContrast(gem.contrast);
+    },
+    [gem],
   );
 
   useEffect(() => {
@@ -252,6 +321,13 @@ function App() {
       </div>
       <div className="flex-1  bg-slate-950 text-primary-foreground overflow-auto">
         <div className="max-w-md mx-auto p-6 flex flex-col gap-8">
+          <SeedSetting
+            label={"Seed"}
+            value={seed}
+            onChange={setSeed}
+            generateRandom={() => setSeed(randomSeed())}
+          />
+
           <SliderSetting
             label="Light position"
             value={lightSourcePosition}
