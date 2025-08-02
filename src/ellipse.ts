@@ -98,39 +98,3 @@ export function getNormal(x: number, y: number): [number, number] {
   const length = getVectorLength(x, y);
   return length === 0 ? [0, 0] : [-y / length, x / length];
 }
-
-function subdivideTriangle(
-  a: [number, number],
-  b: [number, number],
-  c: [number, number],
-  depth: number,
-): Array<[[number, number], [number, number], [number, number]]> {
-  if (depth <= 0) return [[a, b, c]];
-  const ab: [number, number] = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-  const bc: [number, number] = [(b[0] + c[0]) / 2, (b[1] + c[1]) / 2];
-  const ca: [number, number] = [(c[0] + a[0]) / 2, (c[1] + a[1]) / 2];
-  return [
-    ...subdivideTriangle(a, ab, ca, depth - 1),
-    ...subdivideTriangle(ab, b, bc, depth - 1),
-    ...subdivideTriangle(ca, bc, c, depth - 1),
-    ...subdivideTriangle(ab, bc, ca, depth - 1),
-  ];
-}
-
-export function tessallate(
-  shape: Array<[number, number]>,
-  depth: number = 0,
-): Array<[[number, number], [number, number], [number, number]]> {
-  const n = shape.length;
-  if (n < 3) return [];
-  let triangles = [];
-  for (let i = 1; i < n - 1; i++) {
-    triangles.push([shape[0], shape[i], shape[i + 1]]);
-  }
-  if (depth > 0) {
-    triangles = triangles.flatMap(([a, b, c]) =>
-      subdivideTriangle(a, b, c, depth),
-    );
-  }
-  return triangles;
-}
