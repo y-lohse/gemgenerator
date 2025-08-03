@@ -310,17 +310,17 @@ function App() {
 
   const complement = (hue + 20) % 361;
 
-  const updateSeed = (newSeed?: string) => {
-    if (newSeed) {
-      setSeed(newSeed);
-      seachParams.set("seed", newSeed);
-      window.history.replaceState({}, "", `?${seachParams.toString()}`);
-    } else {
-      const newRandomSeed = randomSeed();
-      setSeed(newRandomSeed);
-      seachParams.set("seed", newRandomSeed);
-      window.history.replaceState({}, "", `?${seachParams.toString()}`);
-    }
+  const updateSeed = (newSeed: string) => {
+    setSeed(newSeed);
+    seachParams.set("seed", newSeed);
+    window.history.replaceState({}, "", `?${seachParams.toString()}`);
+  };
+
+  const setRandomSeed = () => {
+    const newRandomSeed = randomSeed();
+    setSeed(newRandomSeed);
+    seachParams.set("seed", newRandomSeed);
+    window.history.replaceState({}, "", `?${seachParams.toString()}`);
   };
 
   return (
@@ -339,7 +339,7 @@ function App() {
             label={"Seed"}
             value={seed}
             onChange={updateSeed}
-            generateRandom={() => updateSeed()}
+            generateRandom={setRandomSeed}
           />
 
           <SliderSetting
