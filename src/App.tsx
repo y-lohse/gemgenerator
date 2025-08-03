@@ -106,7 +106,8 @@ const useGemSettings = (seed: string, minScaleFactor: number) => {
 };
 
 function App() {
-  const [seed, setSeed] = useState(randomSeed());
+  const seachParams = new URLSearchParams(window.location.search);
+  const [seed, setSeed] = useState(seachParams.get("seed") ?? randomSeed());
   const drawAreaRef = useRef<HTMLDivElement | null>(null);
 
   const minScaleFactor = 0.4;
@@ -309,6 +310,19 @@ function App() {
 
   const complement = (hue + 20) % 361;
 
+  const updateSeed = (newSeed?: string) => {
+    if (newSeed) {
+      setSeed(newSeed);
+      seachParams.set("seed", newSeed);
+      window.history.replaceState({}, "", `?${seachParams.toString()}`);
+    } else {
+      const newRandomSeed = randomSeed();
+      setSeed(newRandomSeed);
+      seachParams.set("seed", newRandomSeed);
+      window.history.replaceState({}, "", `?${seachParams.toString()}`);
+    }
+  };
+
   return (
     <div className="h-screen max-h-screen flex flex-col lg:flex-row justify-center items-stretch overflow-hidden">
       <div
@@ -324,8 +338,8 @@ function App() {
           <SeedSetting
             label={"Seed"}
             value={seed}
-            onChange={setSeed}
-            generateRandom={() => setSeed(randomSeed())}
+            onChange={updateSeed}
+            generateRandom={() => updateSeed()}
           />
 
           <SliderSetting
